@@ -23,12 +23,15 @@ database = databases.Database(DATABASE_URL)
 
 metadata = sqlalchemy.MetaData()
 
-notes = sqlalchemy.Table(
-    "notes",
+users = sqlalchemy.Table(
+    "User",
     metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column("text", sqlalchemy.String),
-    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+    sqlalchemy.Column("username", sqlalchemy.String),
+    sqlalchemy.Column("password", sqlalchemy.String),
+    sqlalchemy.Column("firstname", sqlalchemy.String),
+    sqlalchemy.Column("lastname", sqlalchemy.String),
+    sqlalchemy.Column("phonenumber", sqlalchemy.String),
 )
 
 engine = sqlalchemy.create_engine(
@@ -37,14 +40,15 @@ engine = sqlalchemy.create_engine(
 )
 metadata.create_all(engine)
 
-class NoteIn(BaseModel):
-    text: str
-    completed: bool
 
-class Note(BaseModel):
-    id: int
-    text: str
-    completed: bool
+
+class User(BaseModel):
+    id: int=None
+    username: str
+    password: str
+    firstname: str
+    lastname: str
+    phonenumber: str=None
 
 app = FastAPI(title="REST API using FastAPI PostgreSQL Async EndPoints")
 app.add_middleware(
@@ -69,30 +73,35 @@ async def getData():
     print("test")
     return "hello-"
 
-@app.post("/notes/", response_model=Note, status_code = status.HTTP_201_CREATED)
-async def create_note(note: NoteIn):
-    query = notes.insert().values(text=note.text, completed=note.completed)
+@app.post("/users/", response_model=User, status_code = status.HTTP_201_CREATED)
+async def create_user(user:User):
+    print("username 1  : ",user)
+    # print("username 1  : ",type(user.password))
+    # print("username 1  : ",type(user.firstname))
+    # print("username 1  : ",type(user.lastname))
+    # print("username 1  : ",type(user.phonenumber))
+    query = users.insert().values(username=user.username,password=user.password,firstname=user.firstname,lastname=user.lastname,phonenumber=user.phonenumber)
     last_record_id = await database.execute(query)
-    return {**note.dict(), "id": last_record_id}
+    return {**user.dict(), "id": last_record_id}
 
-@app.put("/notes/{note_id}/", response_model=Note, status_code = status.HTTP_200_OK)
-async def update_note(note_id: int, payload: NoteIn):
-    query = notes.update().where(notes.c.id == note_id).values(text=payload.text, completed=payload.completed)
+@app.put("/users/{userId}/", response_model=User, status_code = status.HTTP_200_OK)
+async def update_user(userId: int, payload: User):
+    query = users.update().where(users.c.id == userId).values(username=payload.username,password=payload.password,firstname=payload.firstname,lastname=payload.lastname,phonenumber=payload.phonenumber)
     await database.execute(query)
-    return {**payload.dict(), "id": note_id}
+    return {**payload.dict(), "id": userId}
 
-@app.get("/notes/", response_model=List[Note], status_code = status.HTTP_200_OK)
-async def read_notes(skip: int = 0, take: int = 20):
-    query = notes.select().offset(skip).limit(take)
+@app.get("/users/", response_model=List[User], status_code = status.HTTP_200_OK)
+async def read_users(skip: int = 0, take: int = 20):
+    query = users.select().offset(skip).limit(take)
     return await database.fetch_all(query)
 
-@app.get("/notes/{note_id}/", response_model=Note, status_code = status.HTTP_200_OK)
-async def read_notes(note_id: int):
-    query = notes.select().where(notes.c.id == note_id)
+@app.get("/users/{userId}/", response_model=User, status_code = status.HTTP_200_OK)
+async def read_users(userId: int):
+    query = users.select().where(users.c.id == userId)
     return await database.fetch_one(query)
 
-@app.delete("/notes/{note_id}/", status_code = status.HTTP_200_OK)
-async def delete_note(note_id: int):
-    query = notes.delete().where(notes.c.id == note_id)
+@app.delete("/users/{userId}/", status_code = status.HTTP_200_OK)
+async def delete_user(userId: int):
+    query = users.delete().where(users.c.id == userId)
     await database.execute(query)
-    return {"message": "Note with id: {} deleted successfully!".format(note_id)}
+    return {"message": "Note with id: {} deleted successfully!".format(userId)}
